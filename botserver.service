@@ -1,0 +1,14 @@
+[Unit]
+Description=tg bot service
+
+[Service]
+SuccessExitStatus=143
+User=ubuntu
+WorkingDirectory=/home/ubuntu
+Type=simple
+ExecStart=java -jar /home/ubuntu/weater-bot.jar
+# optional items below
+ExecStop=/bin/kill -15 $MAINPID
+
+[Install]
+WantedBy=multi-user.target

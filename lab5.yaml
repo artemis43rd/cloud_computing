@@ -1,0 +1,128 @@
+- name: Create production server
+  hosts: localhost
+  connection: local
+  vars:
+    terraform_rc_path: .terraformrc
+    terraform_path: ./terraform-openstack
+  tasks:
+    - name: Prepare TF (set yandex mirror)
+      copy:
+        src: "{{ terraform_rc_path }}"
+        dest: ~/.terraformrc
+
+    - name: Run terraform
+      environment:
+        TF_VAR_user_name: "{{ lookup('env', 'TF_VAR_user_name') }}"
+        TF_VAR_password: "{{ lookup('env', 'TF_VAR_password') }}"
+      terraform:
+        project_path: "{{ terraform_path }}"
+        force_init: yes
+        state: present
+      register: trfrm
+
+    - name: Export server IP up
+      lineinfile:
+        path: ~/server_ip
+        regexp: '^SERVER_IP='
+        line: "SERVER_IP={{ trfrm.outputs.servers.value.serverip }}"
+        mode: '0644'
+        create: yes
+
+    - name: Add instance host (Ansible term)
+      add_host:
+        name: tpb-server
+        groups: nodes
+        ansible_ssh_user: ubuntu
+        ansible_host: "{{ trfrm.outputs.servers.value.serverip }}"
+        ansible_ssh_private_key_file: ~/.ssh/devops_keypair.pub
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+
+- name: Wait for instance creating
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: Wait for a ssh port become available
+      wait_for:
+        host: "{{ trfrm.outputs.servers.value.serverip }}"
+        port: 22
+
+- name: Start production database 
+  hosts: tpb-server
+  become: yes
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+    - name: Install `postgresql` server
+      apt:
+        name: postgresql
+        state: present
+      become: yes
+
+    - name: Install python wrapper for Ansible's PostgreSQL plugin
+      apt:
+        name: python3-psycopg2
+        state: present
+
+
+    - name: Start `postgresql` service
+      service:
+        name: postgresql
+        state: restarted
+        enabled: yes
+
+    - name: Install setfacl tool for changing user in Ansible
+      apt:
+        name: acl
+        state: present
+
+    # https://docs.ansible.com/ansible/latest/collections/community/postgresql/postgresql_user_module.html
+    - name: Set user password
+      become_user: postgres
+      community.postgresql.postgresql_user:
+        name: postgres
+        password: 123
+
+    - name: Create database
+      become_user: postgres
+      community.postgresql.postgresql_db:
+        name: weather_bot
+        login_password: 123
+
+- name: Prepare production for deploy
+  hosts: tpb-server
+  vars:
+    service_path: botserver.service
+    terraform_path: ./terraform-openstack
+  tasks:
+    - block:
+      - name: Install JDK
+        apt:
+          update_cache: yes
+          name: openjdk-21-jdk-headless
+          state: present
+        become: yes
+
+      - name: Create bot app service
+        copy:
+          src: "{{ service_path }}"
+          dest: /etc/systemd/system/botserver.service
+          mode: '0777'
+        become: yes
+
+      - name: Reload services
+        systemd:
+          daemon_reload: true
+          name: botserver
+          state: stopped
+        become: yes
+
+      rescue:
+       - name: Clean up resources in case of error
+         terraform:
+           project_path: "{{ terraform_path }}"
+           state: absent
+           targets: openstack_compute_instance_v2.oleynik_server
+         delegate_to: localhost
