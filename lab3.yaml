@@ -29,7 +29,7 @@ resources:
   server-01-port:
     type: OS::Neutron::Port
     properties:
-      network_id: "17eae9b6-2168-4a07-a0d3-66d5ad2a9f0e" # students.net ID
+      network_id: "6a69f855-8a2d-4994-baf0-ed4feedd897b" # students.net ID
       security_groups:
         - default
         - { get_resource: tpb-group }
