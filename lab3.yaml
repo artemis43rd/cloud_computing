@@ -35,17 +35,17 @@ resources:
         # 1. Установка PostgreSQL
         apt-get update
         apt-get install -y postgresql postgresql-contrib
-        
+
         systemctl start postgresql
         systemctl enable postgresql
-        
+
         # Настройка БД (пароль '123' и база 'weather_bot')
         sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD '123';"
         sudo -u postgres psql -c "CREATE DATABASE weather_bot;"
         sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE weather_bot TO postgres;"
 
         # 2. Установка Java (нужна для Kafka)
-        apt-get install -y openjdk-17-jre-headless
+        apt-get install openjdk-21-jre-headless -y
 
         # 3. Установка Kafka
         cd /home/ubuntu
