@@ -6,7 +6,7 @@ SuccessExitStatus=143
 User=ubuntu
 WorkingDirectory=/home/ubuntu
 Type=simple
-ExecStart=java -jar /home/ubuntu/weater-bot.jar
+ExecStart=java -jar /home/ubuntu/weather-bot.jar
 # optional items below
 ExecStop=/bin/kill -15 $MAINPID
 
