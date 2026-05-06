@@ -46,7 +46,7 @@ resource "openstack_networking_secgroup_rule_v2" "kafka" {
 }
 
 resource "openstack_compute_instance_v2" "server" {
-  name            = "cherdantsev-server-trfm"
+  name            = "cherdantsev-trfm"
   image_name      = var.image_name
   flavor_name     = var.server_flavor
   key_pair        = var.key_pair

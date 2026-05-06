@@ -1,6 +1,6 @@
 variable "image_name" {
   type    = string
-  default = "ubuntu-24.04" # Исправлена опечатка и версия
+  default = "ubuntu-24.04"
 }
 
 variable "server_flavor" {
