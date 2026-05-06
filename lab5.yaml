@@ -1,25 +1,42 @@
-- name: Infrastructure and Configuration
+- name: Infrastructure Creation
   hosts: localhost
   connection: local
+  vars:
+    terraform_rc_path: .terraformrc
+    terraform_path: ./terraform-openstack
   tasks:
+    - name: Prepare Terraform Mirror (set yandex mirror)
+      copy:
+        src: "{{ terraform_rc_path }}"
+        dest: ~/.terraformrc
+
     - name: Run terraform
       environment:
         TF_VAR_user_name: "{{ lookup('env', 'OS_USERNAME') }}"
         TF_VAR_password: "{{ lookup('env', 'OS_PASSWORD') }}"
       terraform:
-        project_path: "./terraform-openstack"
+        project_path: "{{ terraform_path }}"
+        force_init: yes
         state: present
       register: trfrm
 
-    - name: Add host to inventory
+    - name: Add instance host to inventory
       add_host:
         name: "new_server"
+        groups: tpb_servers
         ansible_host: "{{ trfrm.outputs.server_ip.value }}"
         ansible_user: ubuntu
+        ansible_ssh_private_key_file: ~/.ssh/devops_keypair
         ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
-        groups: tpb_servers
 
-- name: Configure Server
+    - name: Wait for SSH to become available
+      wait_for:
+        host: "{{ trfrm.outputs.server_ip.value }}"
+        port: 22
+        delay: 10
+        timeout: 300
+
+- name: Configure Server (DB, Kafka, Java, App)
   hosts: tpb_servers
   become: yes
   tasks:
@@ -64,7 +81,7 @@
       shell: |
         export KAFKA_HEAP_OPTS="-Xmx512M -Xms256M"
         /opt/kafka/bin/zookeeper-server-start.sh -daemon /opt/kafka/config/zookeeper.properties
-        sleep 10
+        sleep 15
         /opt/kafka/bin/kafka-server-start.sh -daemon /opt/kafka/config/server.properties
       args:
         executable: /bin/bash
