@@ -44,19 +44,8 @@ resources:
         sudo -u postgres psql -c "CREATE DATABASE weather_bot;"
         sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE weather_bot TO postgres;"
 
-        # 2. Установка Java (нужна для Kafka)
+        # 2. Установка Java
         apt-get install openjdk-21-jre-headless -y
-
-        # 3. Установка Kafka
-        cd /home/ubuntu
-        wget https://archive.apache.org/dist/kafka/3.6.0/kafka_2.13-3.6.0.tgz
-        tar -xzf kafka_2.13-3.6.0.tgz
-        mv kafka_2.13-3.6.0 /opt/kafka
-
-        # Запуск Zookeeper
-        /opt/kafka/bin/zookeeper-server-start.sh -daemon /opt/kafka/config/zookeeper.properties
-        # Запуск Kafka
-        /opt/kafka/bin/kafka-server-start.sh -daemon /opt/kafka/config/server.properties
 
     depends_on:
       - tpb-group
