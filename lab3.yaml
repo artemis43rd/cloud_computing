@@ -1,28 +1,63 @@
 heat_template_version: 2021-04-16
-description: "lab3 2026-03-10"
+description: "Lab3 with PostgreSQL and Kafka installation"
+
 resources:
   tpb-group:
     type: "OS::Neutron::SecurityGroup"
     properties:
+      description: "Security group for app, db and kafka"
       rules:
-        - ethertype: IPv4
-          protocol: tcp
-          remote_mode: remote_ip_prefix
+        - protocol: tcp
           port_range_min: 22
           port_range_max: 22
           remote_ip_prefix: "0.0.0.0/0"
-      description: "My security group for app instance"
+        - protocol: tcp
+          port_range_min: 5432
+          port_range_max: 5432
+          remote_ip_prefix: "0.0.0.0/0"
+        - protocol: tcp
+          port_range_min: 9092 # Kafka
+          port_range_max: 9092
+          remote_ip_prefix: "0.0.0.0/0"
+
   tpb-server:
     type: "OS::Nova::Server"
     properties:
-      # description: "Weather server with db"
       name: "cherdantsev-instance-lab03"
       flavor: "m1.small"
-      image: "16729277-5d18-44ce-9581-1b2fd5d5659a" # ubuntu 22.04
-      availability_zone: nova
+      image: "16729277-5d18-44ce-9581-1b2fd5d5659a"
       key_name: "cherdantsev"
       networks:
-      - port: { get_resource: server-01-port }
+        - port: { get_resource: server-01-port }
+      user_data_format: RAW
+      user_data: |
+        #!/bin/bash
+        # 1. Установка PostgreSQL
+        apt-get update
+        apt-get install -y postgresql postgresql-contrib
+        
+        systemctl start postgresql
+        systemctl enable postgresql
+        
+        # Настройка БД (пароль '123' и база 'weather_bot')
+        sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD '123';"
+        sudo -u postgres psql -c "CREATE DATABASE weather_bot;"
+        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE weather_bot TO postgres;"
+
+        # 2. Установка Java (нужна для Kafka)
+        apt-get install -y openjdk-17-jre-headless
+
+        # 3. Установка Kafka
+        cd /home/ubuntu
+        wget https://archive.apache.org/dist/kafka/3.6.0/kafka_2.13-3.6.0.tgz
+        tar -xzf kafka_2.13-3.6.0.tgz
+        mv kafka_2.13-3.6.0 /opt/kafka
+
+        # Запуск Zookeeper
+        /opt/kafka/bin/zookeeper-server-start.sh -daemon /opt/kafka/config/zookeeper.properties
+        # Запуск Kafka
+        /opt/kafka/bin/kafka-server-start.sh -daemon /opt/kafka/config/server.properties
+
     depends_on:
       - tpb-group
 
@@ -33,4 +68,3 @@ resources:
       security_groups:
         - default
         - { get_resource: tpb-group }
-  
