@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cheardantsev-db
-  namespace: cheardantsev-ns
+  name: postgres-db
+  namespace: cherdantsev-ns
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: cheardantsev-db
+      app: postgres-db
   template:
     metadata:
       labels:
-        app: cheardantsev-db
+        app: postgres-db
     spec:
       containers:
       - name: postgres
-        image: image: postgres:15
+        image: postgres:15
         env:
         - name: POSTGRES_PASSWORD
           value: "123"
@@ -23,23 +23,3 @@ spec:
           value: "weather_bot"
         ports:
         - containerPort: 5432
-        volumeMounts:
-        - name: db-data
-          mountPath: /var/lib/postgresql/data
-      volumes:
-      - name: db-data
-        emptyDir: {}
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: cheardantsev-db-service
-  namespace: cheardantsev-ns
-spec:
-  selector:
-    app: cheardantsev-db
-  ports:
-    - protocol: TCP
-      port: 5432
-      targetPort: 5432
