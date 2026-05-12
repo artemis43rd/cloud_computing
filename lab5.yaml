@@ -85,15 +85,3 @@
         /opt/kafka/bin/kafka-server-start.sh -daemon /opt/kafka/config/server.properties
       args:
         executable: /bin/bash
-
-    - name: Deploy Service
-      copy:
-        src: botserver.service
-        dest: /etc/systemd/system/weather-bot.service
-    
-    - name: Restart Bot Service
-      systemd:
-        name: weather-bot
-        state: restarted
-        daemon_reload: yes
-        enabled: yes
