@@ -62,11 +62,12 @@
             name: weather_bot
 
     - name: Install Kafka
-      block:
-        - name: Download Kafka
-          get_url:
-            url: https://archive.apache.org/dist/kafka/3.6.0/kafka_2.13-3.6.0.tgz
+          block:
+        - name: Copy Kafka archive from Agent to Remote Server
+          copy:
+            src: /home/ubuntu/kafka_2.13-3.6.0.tgz
             dest: /tmp/kafka.tgz
+            mode: '0644'
         - name: Unpack Kafka
           unarchive:
             src: /tmp/kafka.tgz
