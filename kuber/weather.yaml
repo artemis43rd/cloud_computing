@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cheardantsev-bot
+  namespace: cheardantsev-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cheardantsev-bot
+  template:
+    metadata:
+      labels:
+        app: cheardantsev-bot
+    spec:
+      containers:
+      - name: bot
+        image: image: cheardantsev-bot:latest
+        ports:
+        - containerPort: 8080
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cheardantsev-bot-service
+  namespace: cheardantsev-ns
+spec:
+  type: ClusterIP
+  selector:
+    app: cheardantsev-bot
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
