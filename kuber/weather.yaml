@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cheardantsev-bot
-  namespace: cheardantsev-ns
+  namespace: cherdantsev-ns
 spec:
   replicas: 1
   selector:
@@ -15,21 +15,16 @@ spec:
     spec:
       containers:
       - name: bot
-        image: cheardantsev-bot:latest
+        image: artemis43rd/weather-bot:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: cheardantsev-bot-service
-  namespace: cheardantsev-ns
-spec:
-  type: ClusterIP
-  selector:
-    app: cheardantsev-bot
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 8080
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:postgresql://postgres-db:5432/weather_bot"
+        - name: SPRING_DATASOURCE_USERNAME
+          value: "postgres"
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: "123"
+        - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+          value: "localhost:9092"
