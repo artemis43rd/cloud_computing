@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: bot
-        image: image: cheardantsev-bot:latest
+        image: cheardantsev-bot:latest
         ports:
         - containerPort: 8080
 
