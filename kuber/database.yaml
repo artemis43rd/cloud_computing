@@ -23,3 +23,16 @@ spec:
           value: "weather_bot"
         ports:
         - containerPort: 5432
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-db
+  namespace: cherdantsev-ns
+spec:
+  selector:
+    app: postgres-db
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
