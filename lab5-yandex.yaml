@@ -1,0 +1,83 @@
+- name: Create Production Server in Yandex
+  hosts: localhost
+  connection: local
+  vars:
+    terraform_rc_path: .terraformrc
+    terraform_path: ./terraform-yandex
+  tasks:
+    - name: Prepare TF Mirror
+      copy:
+        src: "{{ terraform_rc_path }}"
+        dest: ~/.terraformrc
+
+    - name: Run terraform
+      terraform:
+        project_path: "{{ terraform_path }}"
+        force_init: yes
+        state: present
+      register: trfrm
+
+    - name: Add host to inventory
+      add_host:
+        name: "yandex_server"
+        groups: tpb_servers
+        ansible_host: "{{ trfrm.outputs.server_ip.value }}"
+        ansible_user: ubuntu
+        ansible_ssh_private_key_file: ~/.ssh/id_rsa
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+
+    - name: Wait for SSH
+      wait_for:
+        host: "{{ trfrm.outputs.server_ip.value }}"
+        port: 22
+        timeout: 300
+
+- name: Configure Yandex Server
+  hosts: tpb_servers
+  become: yes
+  tasks:
+    - name: Update apt and install soft
+      apt:
+        update_cache: yes
+        name: 
+          - postgresql
+          - python3-psycopg2
+          - openjdk-21-jre-headless
+          - acl
+        state: present
+
+    - name: Setup Database
+      become_user: postgres
+      community.postgresql.postgresql_db:
+        name: weather_bot
+
+    - name: Set postgres password
+      become_user: postgres
+      community.postgresql.postgresql_user:
+        name: postgres
+        password: "123"
+
+    - name: Install Kafka (Copy from agent)
+      block:
+        - name: Copy archive
+          copy:
+            src: /home/ubuntu/kafka_2.13-3.6.0.tgz
+            dest: /tmp/kafka.tgz
+        - name: Unpack
+          unarchive:
+            src: /tmp/kafka.tgz
+            dest: /opt/
+            remote_src: yes
+        - name: Rename dir
+          shell: rm -rf /opt/kafka && mv /opt/kafka_2.13-3.6.0 /opt/kafka
+          args:
+            creates: /opt/kafka
+
+    - name: Start Kafka
+      shell: |
+        export KAFKA_HEAP_OPTS="-Xmx512M -Xms256M"
+        /opt/kafka/bin/zookeeper-server-start.sh -daemon /opt/kafka/config/zookeeper.properties
+        sleep 10
+        /opt/kafka/bin/kafka-server-start.sh -daemon /opt/kafka/config/server.properties
+      args:
+        executable: /bin/bash
