@@ -17,7 +17,11 @@ spec:
       - name: bot
         image: artemis43rd/weather-bot:latest
         imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
         env:
+        - name: BOT_HOST_HTTP_PORT
+          value: "8081"
         - name: DB_URL
           value: "jdbc:postgresql://postgres-db:5432/weather_bot"
         - name: DB_USERNAME
@@ -44,3 +48,37 @@ spec:
             secretKeyRef:
               name: bot-secrets
               key: DB_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cheardantsev-bot-service
+  namespace: cherdantsev-ns
+spec:
+  type: NodePort
+  selector:
+    app: cheardantsev-bot
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bot-ingress
+  namespace: cherdantsev-ns
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: bot.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: cheardantsev-bot-service
+            port:
+              number: 8081
